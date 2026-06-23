@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Resume Review Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #12121a;
+      --card:      #1a1a26;
+      --border:    #2a2a3d;
+      --accent:    #7c6af7;
+      --accent2:   #a78bfa;
+      --green:     #22d3a8;
+      --red:       #f87171;
+      --yellow:    #fbbf24;
+      --text:      #e2e2f0;
+      --muted:     #8b8ba8;
+      --glow:      rgba(124,106,247,0.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── ANIMATED BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(124,106,247,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(34,211,168,0.10) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      padding: 3rem 0 2.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(124,106,247,0.15);
+      border: 1px solid rgba(124,106,247,0.35);
+      color: var(--accent2);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+    }
+
+    .badge span { font-size: 1rem; }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      font-weight: 400;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── FEATURE PILLS ── */
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1.8rem;
+    }
+
+    .feature-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .feature-pill .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      transition: border-color 0.3s;
+    }
+
+    .card:focus-within {
+      border-color: rgba(124,106,247,0.5);
+      box-shadow: 0 0 0 4px var(--glow);
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 1rem;
+    }
+
+    .card-label .icon { font-size: 1rem; }
+
+    /* ── TEXTAREA ── */
+    #resumeInput {
+      width: 100%;
+      min-height: 260px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.92rem;
+      line-height: 1.75;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    #resumeInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+
+    #resumeInput::placeholder { color: #44445a; }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* ── BUTTON ── */
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--accent) 0%, #9f7aea 100%);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 4px 24px rgba(124,106,247,0.4);
+      letter-spacing: 0.02em;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(124,106,247,0.55);
+    }
+
+    .btn:active:not(:disabled) { transform: translateY(0); }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Shimmer effect on button */
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::after { left: 150%; }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULT SECTION ── */
+    #resultSection {
+      display: none;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    .result-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(34,211,168,0.12);
+      border: 1px solid rgba(34,211,168,0.3);
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1s infinite;
+    }
+
+    /* ── RESULT OUTPUT ── */
+    #resultOutput {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem 1.8rem;
+      font-size: 0.93rem;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      min-height: 100px;
+      color: var(--text);
+      position: relative;
+    }
+
+    /* Style headings that come from the AI */
+    #resultOutput .section-score  { color: var(--accent2); font-weight: 700; }
+    #resultOutput .section-strong { color: var(--green);   font-weight: 700; }
+    #resultOutput .section-weak   { color: var(--yellow);  font-weight: 700; }
+    #resultOutput .section-tips   { color: #60a5fa;        font-weight: 700; }
+    #resultOutput .section-qs     { color: #f472b6;        font-weight: 700; }
+
+    /* Typing cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent2);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── COPY BUTTON ── */
+    .copy-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    /* ── DONE STATE ── */
+    .done-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(34,211,168,0.08);
+      border: 1px solid rgba(34,211,168,0.25);
+      border-radius: 10px;
+      padding: 0.85rem 1.2rem;
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      color: var(--green);
+      font-weight: 500;
+      display: none;
+    }
+
+    /* ── ERROR ── */
+    .error-msg {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      color: var(--red);
+      border-radius: 10px;
+      padding: 0.85rem 1.2rem;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding-top: 3rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    footer a { color: var(--accent2); text-decoration: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .container { padding: 1rem 1rem 3rem; }
+      h1 { font-size: 1.8rem; }
+      .card { padding: 1.2rem; }
+      #resultOutput { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="badge"><span>🤖</span> Powered by OpenAI GPT-4o</div>
+    <h1>AI Resume<br>Review Agent</h1>
+    <p class="subtitle">Paste your resume below and get an instant professional analysis — score, strengths, weaknesses, tips & interview questions.</p>
+
+    <div class="features">
+      <div class="feature-pill"><span class="dot"></span> Resume Score</div>
+      <div class="feature-pill"><span class="dot"></span> Strengths Analysis</div>
+      <div class="feature-pill"><span class="dot"></span> Weakness Detection</div>
+      <div class="feature-pill"><span class="dot"></span> Smart Suggestions</div>
+      <div class="feature-pill"><span class="dot"></span> Interview Questions</div>
+    </div>
+  </header>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-label">
+      <span class="icon">📄</span> Your Resume
+    </div>
+
+    <textarea
+      id="resumeInput"
+      placeholder="Paste your full resume text here...
+
+Example:
+John Doe | john@email.com | LinkedIn: linkedin.com/in/johndoe
+
+EXPERIENCE
+Software Engineer at Google (2021–Present)
+• Built scalable APIs serving 10M+ users
+• Led a team of 5 engineers...
+
+EDUCATION
+B.Tech Computer Science — IIT Delhi (2017–2021)
+
+SKILLS
+Python, JavaScript, React, AWS, Docker..."
+    ></textarea>
+
+    <div class="char-count" id="charCount">0 characters</div>
+  </div>
+
+  <!-- ANALYZE BUTTON -->
+  <button class="btn" id="analyzeBtn" onclick="analyzeResume()">
+    <div class="btn-inner">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnText">✨ Analyze My Resume</span>
+    </div>
+  </button>
+
+  <!-- ERROR MESSAGE -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- RESULT SECTION -->
+  <div id="resultSection" style="margin-top: 1.8rem;">
+    <div class="result-header">
+      <div class="result-title">🤖 AI Analysis</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="live-badge" id="liveBadge">
+          <div class="live-dot"></div> LIVE
+        </div>
+        <button class="copy-btn" onclick="copyResult()">📋 Copy</button>
+      </div>
+    </div>
+
+    <div id="resultOutput"></div>
+
+    <div class="done-banner" id="doneBanner">
+      ✅ Analysis complete! Review your results above and take action. Good luck! 🚀
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Built with ❤️ using Python, Flask & OpenAI GPT &nbsp;·&nbsp; <a href="#">Resume AI Agent</a></p>
+  </footer>
+
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT — Handles the form submission and streaming response
+     ================================================================ -->
+<script>
+  // ── Update character count as user types ──
+  const textarea = document.getElementById('resumeInput');
+  const charCount = document.getElementById('charCount');
+
+  textarea.addEventListener('input', () => {
+    const len = textarea.value.length;
+    charCount.textContent = `${len.toLocaleString()} character${len !== 1 ? 's' : ''}`;
+  });
+
+  // ── Main analyze function ──
+  async function analyzeResume() {
+    const resumeText = textarea.value.trim();
+
+    // Validate input
+    if (!resumeText || resumeText.length < 50) {
+      showError('⚠️ Please paste your complete resume (at least 50 characters).');
+      return;
+    }
+
+    // Reset UI state
+    hideError();
+    setLoading(true);
+    showResultSection();
+    clearResult();
+
+    try {
+      // Send POST request to Flask backend with resume text
+      const response = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume: resumeText })
+      });
+
+      // Handle server errors
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Server error. Please try again.');
+      }
+
+      // Read the streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      const outputEl = document.getElementById('resultOutput');
+
+      // Add blinking cursor
+      outputEl.innerHTML = '<span class="cursor"></span>';
+
+      let fullText = '';
+
+      // Keep reading chunks until stream ends
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // Decode the chunk (SSE format: "data: <content>\n\n")
+        const raw = decoder.decode(value, { stream: true });
+        const lines = raw.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const content = line.slice(6); // Remove "data: " prefix
+
+            if (content === '[DONE]') {
+              // Stream finished!
+              setLoading(false);
+              document.getElementById('liveBadge').style.display = 'none';
+              document.getElementById('doneBanner').style.display = 'flex';
+              break;
+            }
+
+            fullText += content;
+
+            // Render the text with colored section headings
+            outputEl.innerHTML = formatResult(fullText) + '<span class="cursor"></span>';
+
+            // Auto-scroll to bottom
+            outputEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          }
+        }
+      }
+
+    } catch (err) {
+      setLoading(false);
+      showError('❌ ' + err.message);
+    }
+  }
+
+  // ── Format the raw text with colored section headings ──
+  function formatResult(text) {
+    return text
+      .replace(/(📊 RESUME SCORE)/g, '<span class="section-score">$1</span>')
+      .replace(/(✅ STRENGTHS)/g,        '<span class="section-strong">$1</span>')
+      .replace(/(⚠️ WEAKNESSES)/g,       '<span class="section-weak">$1</span>')
+      .replace(/(💡 IMPROVEMENT SUGGESTIONS)/g, '<span class="section-tips">$1</span>')
+      .replace(/(🎯 INTERVIEW QUESTIONS)/g, '<span class="section-qs">$1</span>');
+  }
+
+  // ── Copy result to clipboard ──
+  function copyResult() {
+    const text = document.getElementById('resultOutput').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy', 2000);
+    });
+  }
+
+  // ── UI Helper Functions ──
+
+  function setLoading(isLoading) {
+    const btn = document.getElementById('analyzeBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+
+    btn.disabled = isLoading;
+    spinner.style.display = isLoading ? 'block' : 'none';
+    btnText.textContent = isLoading ? 'Analyzing...' : '✨ Analyze My Resume';
+  }
+
+  function showResultSection() {
+    const section = document.getElementById('resultSection');
+    section.style.display = 'block';
+    document.getElementById('liveBadge').style.display = 'flex';
+    document.getElementById('doneBanner').style.display = 'none';
+    // Smooth scroll to results
+    setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  function clearResult() {
+    document.getElementById('resultOutput').innerHTML = '';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+</script>
+
+</body>
+</html>

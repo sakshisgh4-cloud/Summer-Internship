@@ -1,0 +1,29 @@
+# ============================
+# .gitignore
+# ============================
+# Files listed here will NOT be uploaded to GitHub.
+# This protects your secret API key and keeps
+# the repo clean from unnecessary files.
+# ============================
+
+# SECRET — Never upload this! Contains your API key.
+.env
+
+# Python cache files (auto-generated, not needed)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment folder (if you use one)
+venv/
+env/
+.venv/
+
+# IDE/Editor settings
+.vscode/
+.idea/
+
+# Windows system files
+Thumbs.db
+desktop.ini
